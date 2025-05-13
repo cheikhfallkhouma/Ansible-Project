@@ -1,0 +1,13 @@
+# Groupe prod avec un ou plusieurs hôtes
+[prod]
+192.168.99.21
+
+# Variables communes à tous les hôtes (y compris ceux dans prod)
+[all:vars]
+ansible_user=vagrant
+#ansible_password=vagrant
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+[prod:vars]
+ansible_password=vagrant
+env=production

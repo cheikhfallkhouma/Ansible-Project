@@ -1,0 +1,24 @@
+#all:  # Groupe racine qui contient tous les hôtes et sous-groupes
+ # children:  # Déclaration de sous-groupes (groupes enfants)
+  #  vagrant_machines:  # Nom personnalisé du groupe de machines
+   #   hosts:  # Liste des hôtes (IP ou noms DNS) appartenant à ce groupe
+    #    192.168.99.21:  # Première machine du groupe
+     #     ansible_user: vagrant  # Nom d'utilisateur utilisé pour SSH
+      #    ansible_password: vagrant  # Mot de passe SSH pour l'utilisateur
+       #   ansible_ssh_common_args: '-o StrictHostKeyChecking=no'  # Ne pas vérifier l'empreinte SSH (utile pour éviter les blocages)
+       # 192.168.99.22:  # Deuxième machine du groupe
+        #  ansible_user: vagrant  # Même configuration utilisateur que la première
+         # ansible_password: vagrant
+          #ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+
+all:
+  children:
+    vagrant_machines:
+      hosts:
+        192.168.99.21:
+        192.168.99.22:
+      vars:
+        ansible_user: vagrant
+        ansible_password: vagrant
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
