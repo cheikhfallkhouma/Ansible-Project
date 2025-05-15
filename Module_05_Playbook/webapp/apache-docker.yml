@@ -1,72 +1,35 @@
-- name: Installation Docker via script officiel
-  hosts: all
-  become: true  # Utiliser les privilèges sudo
+# Début d'un play (bloc d'exécution)
+- name: "Apache installation using Docker"  # Titre descriptif du play
+  hosts: prod                                # S'applique au groupe d'hôtes "prod"
+  become: true                               # Active l'élévation de privilèges (sudo)
 
-  tasks:
+  vars:
+    ansible_sudo_pass: admin                # Mot de passe sudo si nécessaire (non recommandé en clair)
 
-    - name: Mettre à jour les paquets
-      apt:
-        update_cache: yes  # Équivaut à `apt update`
+  pre_tasks:                                 # Tâches à exécuter avant les tasks principales
+    - name: Install EPEL repo (only for CentOS)  # Installe le dépôt EPEL pour CentOS
+      package:
+        name: epel-release                  # Nom du paquet à installer
+        state: present                      # S'assure que le paquet est présent
+      when: ansible_distribution == "CentOS"  # Ne s'exécute que si le système est CentOS
 
-    - name: Installer les dépendances
+    - name: Ensure Python 3 and pip3 are installed  # Installe Python 3 et pip3 sur Ubuntu
       apt:
         name:
-          - apt-transport-https  # Nécessaire pour HTTPS avec apt
-          - ca-certificates      # Permet de vérifier les certificats SSL
-          - curl                 # Utilitaire pour télécharger des fichiers
-          - software-properties-common  # Pour ajouter des dépôts facilement
+          - python3                         # Paquet Python 3
+          - python3-pip                     # pip pour Python 3
         state: present
+      when: ansible_distribution == "Ubuntu"  # Ne s'exécute que sur Ubuntu
 
-    - name: Ajouter la clé GPG de Docker
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg  # Clé publique pour authentifier les paquets Docker
-        state: present
-
-    - name: Ajouter le dépôt Docker
-      apt_repository:
-        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable  # Dépôt officiel Docker pour Ubuntu 20.04 (Focal)
-        state: present
-
-    - name: Mettre à jour le cache APT après ajout du dépôt
-      apt:
-        update_cache: yes  # Recharger la liste des paquets (avec le nouveau dépôt)
-
-    - name: Installer Docker CE
-      apt:
-        name: docker-ce  # Docker Community Edition
-        state: present
-
-    - name: Démarrer et activer Docker
-      systemd:
-        name: docker
-        enabled: true  # Démarrage automatique au boot
-        state: started  # Démarrer le service immédiatement
-
-    - name: Installer pip3
-      apt:
-        name: python3-pip
-        state: present  # pip sera utilisé pour installer le module Python 'docker'
-
-    - name: Installer la bibliothèque docker via pip
+    - name: Install docker Python module for Python 3  # Installe le module Python "docker"
       pip:
-        name: docker  # Nécessaire pour le module Ansible `docker_container`
-        executable: pip3
+        name: docker                        # Nom du package pip à installer
+        executable: pip3                    # Utilise pip3 (lié à Python 3)
 
-    # - name: Créer un conteneur Docker avec Nginx
-    #   docker_container:
-    #     name: nginx-container
-    #     image: nginx:latest  # Télécharge et utilise l'image officielle de Nginx
-    #     state: started
-    #     restart_policy: always  # Redémarrage automatique si le conteneur tombe
-    #     ports:
-    #       - "8080:80"  # Redirige le port 80 du conteneur vers le port 8080 de l'hôte
-
-    - name: Créer un conteneur Docker avec Apache (httpd)
+  tasks:                                      # Bloc de tâches principales
+    - name: Create Apache container           # Crée un conteneur Docker avec Apache
       docker_container:
-        name: apache-container
-        image: httpd:latest
-        state: started
-        restart_policy: always
+        name: webapp                         # Nom du conteneur
+        image: httpd                         # Image Docker utilisée (Apache HTTP Server)
         ports:
-          - "80:80"
-
+          - "80:80"                          # Redirige le port 80 de l'hôte vers le conteneur

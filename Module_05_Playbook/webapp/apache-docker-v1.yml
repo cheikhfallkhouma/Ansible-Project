@@ -1,0 +1,67 @@
+---
+- name: "Apache installation using Docker (Ubuntu)"
+  hosts: prod
+  become: true  # Exécuter les tâches avec sudo
+  vars:
+    ansible_sudo_pass: admin  # Mot de passe sudo si nécessaire (peu recommandé en pratique dans un playbook)
+
+  tasks:
+
+    - name: Mettre à jour le cache APT
+      apt:
+        update_cache: yes  # Équivaut à `apt update`
+
+    - name: Installer les dépendances de base
+      apt:
+        name:
+          - apt-transport-https  # Permet à APT d'utiliser HTTPS
+          - ca-certificates      # Gère les certificats SSL
+          - curl                 # Utilitaire de téléchargement
+          - gnupg                # Pour ajouter des clés GPG
+          - lsb-release          # Pour détecter la version de la distribution
+        state: present  # S'assure que les paquets sont installés
+
+    - name: Ajouter la clé GPG de Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg  # Clé publique pour vérifier les paquets Docker
+        state: present
+
+    - name: Ajouter le dépôt Docker pour Ubuntu
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"  # Dépôt Docker officiel
+        state: present
+        filename: docker  # Enregistre le dépôt dans /etc/apt/sources.list.d/docker.list
+
+    - name: Mettre à jour le cache APT après ajout du dépôt Docker
+      apt:
+        update_cache: yes  # Recharge la liste des paquets avec le nouveau dépôt
+
+    - name: Installer Docker Engine
+      apt:
+        name: docker-ce  # Docker Community Edition
+        state: present
+
+    - name: Démarrer et activer Docker
+      systemd:
+        name: docker
+        enabled: true  # Active Docker au démarrage
+        state: started  # Lance Docker maintenant
+
+    - name: Installer pip3
+      apt:
+        name: python3-pip
+        state: present  # pip3 est requis pour installer la lib Docker Python
+
+    - name: Installer la bibliothèque Docker en Python
+      pip:
+        name: docker  # SDK Python pour interagir avec l’API Docker
+        executable: pip3  # Utilise pip3 (et non pip pour Python 2)
+
+    - name: Lancer un conteneur Apache (httpd)
+      docker_container:
+        name: webapp  # Nom du conteneur
+        image: httpd  # Utilise l’image officielle Apache
+        state: started  # Démarre le conteneur
+        restart_policy: always  # Redémarre automatiquement si le conteneur s’arrête
+        ports:
+          - "80:80"  # Mappe le port 80 du conteneur vers le port 80 de l'hôte
